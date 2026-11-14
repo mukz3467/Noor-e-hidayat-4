@@ -16,6 +16,10 @@ import com.example.data.repository.QuranAudioManager
 
 class PrayerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_STOP_AZAN) {
+            QuranAudioManager.stopMedia()
+            return
+        }
         val id = intent.getStringExtra(EXTRA_ID) ?: return
         val prayerName = intent.getStringExtra(EXTRA_NAME) ?: "Prayer"
         val sound = intent.getStringExtra(EXTRA_SOUND) ?: "makkah"
@@ -28,6 +32,11 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
     }
 
     companion object {
+        const val ACTION_STOP_AZAN = "com.example.ACTION_STOP_AZAN"
+        const val EXTRA_PRAYER_KEY = "prayer_key"
+        const val EXTRA_PRAYER_TITLE = "prayer_title"
+        const val EXTRA_PRAYER_TIME = "prayer_time"
+        const val EXTRA_ADHAN_SOUND = "adhan_sound"
         const val EXTRA_ID = "prayer_alarm_id"
         const val EXTRA_NAME = "prayer_alarm_name"
         const val EXTRA_SOUND = "prayer_alarm_sound"
