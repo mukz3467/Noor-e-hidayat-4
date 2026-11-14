@@ -35,17 +35,6 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
     }
 }
 
-class PrayerBootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_MY_PACKAGE_REPLACED,
-            Intent.ACTION_TIME_CHANGED,
-            Intent.ACTION_TIMEZONE_CHANGED -> PrayerNotificationManager.init(context)
-        }
-    }
-}
-
 class AdhanPlaybackService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val timeout = Runnable { finishPlayback() }
