@@ -53,7 +53,8 @@ import java.text.SimpleDateFormat
 @Composable
 fun PrayerTimesScreen(
     language: AppLanguage,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    openSettingsInitially: Boolean = false
 ) {
     val context = LocalContext.current
 
