@@ -49,9 +49,12 @@ data class RamadanDaySchedule(
 )
 
 enum class HijriCalendarConvention(val id: String) {
+    PAKISTAN_RUET("pakistan_ruet"),
+    UMM_AL_QURA("umm_al_qura"),
+    ASTRONOMICAL_TABULAR("astronomical_tabular"),
+    MANUAL_LOCAL_SIGHTING("manual_local_sighting"),
     PAKISTAN_RUET_E_HILAL("pakistan_ruet_e_hilal"),
-    ASTRONOMICAL("astronomical"),
-    UMM_AL_QURA("umm_al_qura")
+    ASTRONOMICAL("astronomical")
 }
 
 fun HijriDate.formatted(language: com.example.data.model.AppLanguage): String = when (language) {
@@ -245,7 +248,7 @@ object IslamicCalendarRepository {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         _manualAdjustmentDays.value = prefs.getInt(KEY_MANUAL_ADJUSTMENT, 0)
         _usePakistanOfficial.value = prefs.getBoolean(KEY_CALENDAR_SOURCE, true)
-        _calendarConvention.value = if (_usePakistanOfficial.value) HijriCalendarConvention.PAKISTAN_RUET_E_HILAL else HijriCalendarConvention.ASTRONOMICAL
+        _calendarConvention.value = if (_usePakistanOfficial.value) HijriCalendarConvention.PAKISTAN_RUET else HijriCalendarConvention.ASTRONOMICAL_TABULAR
     }
 
     fun setManualAdjustment(context: Context, days: Int) {
@@ -257,7 +260,7 @@ object IslamicCalendarRepository {
 
     fun setCalendarConvention(context: Context, convention: HijriCalendarConvention) {
         _calendarConvention.value = convention
-        setUsePakistanOfficial(context, convention == HijriCalendarConvention.PAKISTAN_RUET_E_HILAL)
+        setUsePakistanOfficial(context, convention == HijriCalendarConvention.PAKISTAN_RUET || convention == HijriCalendarConvention.PAKISTAN_RUET_E_HILAL)
     }
 
     fun setUsePakistanOfficial(context: Context, useOfficial: Boolean) {
@@ -321,6 +324,9 @@ object IslamicCalendarRepository {
             sourceDescription = source
         )
     }
+
+    fun getHijriDate(calendar: Calendar, manualOffsetDays: Int, convention: HijriCalendarConvention): HijriDate =
+        getHijriDate(calendar, manualOffsetDays)
 
     fun getHijriDate(calendar: Calendar, convention: HijriCalendarConvention, manualOffsetDays: Int): HijriDate =
         getHijriDate(calendar, manualOffsetDays)
