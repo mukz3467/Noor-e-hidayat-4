@@ -229,6 +229,14 @@ object AppLocationManager {
         }
     }
 
+    /** Initialize cached location and refresh GPS only when permission is already granted. */
+    fun initializeAndRefreshIfPermitted(context: Context) {
+        init(context)
+        if (hasLocationPermission(context)) {
+            requestLocationUpdate(context, forceFresh = false)
+        }
+    }
+
     fun hasLocationPermission(context: Context): Boolean {
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
