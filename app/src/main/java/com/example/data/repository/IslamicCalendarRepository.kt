@@ -58,7 +58,7 @@ enum class HijriCalendarConvention(val id: String) {
 }
 
 fun HijriDate.formatted(language: com.example.data.model.AppLanguage): String = when (language) {
-    com.example.data.model.AppLanguage.URDU -> "$day $monthNameUr $yearھ"
+    com.example.data.model.AppLanguage.URDU -> "$day $monthNameUr ${year}ھ"
     com.example.data.model.AppLanguage.ARABIC -> "$day $monthNameAr $year هـ"
     com.example.data.model.AppLanguage.HINDI -> "$day ${monthNameHi.ifBlank { monthNameEn }} $year हिजरी"
     com.example.data.model.AppLanguage.ENGLISH -> "$day $monthNameEn $year AH"
@@ -86,6 +86,12 @@ object IslamicCalendarRepository {
         "محرّم", "صفر", "ربيع الأول", "ربيع الثاني",
         "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان",
         "رمضان", "شوّال", "ذو القعدة", "ذو الحجة"
+    )
+
+    val HIJRI_MONTHS_HI = listOf(
+        "मुहर्रम", "सफ़र", "रबीउल अव्वल", "रबीउस्सानी",
+        "जुमादल ऊला", "जुमादल आख़िरा", "रजब", "शाबान",
+        "रमज़ान", "शव्वाल", "ज़ुलक़ादा", "ज़ुलहिज्जा"
     )
 
     val ISLAMIC_EVENTS: List<IslamicCalendarEvent> = listOf(
@@ -234,7 +240,7 @@ object IslamicCalendarRepository {
     private val _manualAdjustmentDays = MutableStateFlow(0)
     val manualAdjustmentDays: StateFlow<Int> = _manualAdjustmentDays.asStateFlow()
 
-    private val _calendarConvention = MutableStateFlow(HijriCalendarConvention.PAKISTAN_RUET_E_HILAL)
+    private val _calendarConvention = MutableStateFlow(HijriCalendarConvention.PAKISTAN_RUET)
     val calendarConvention: StateFlow<HijriCalendarConvention> = _calendarConvention.asStateFlow()
 
     private val _usePakistanOfficial = MutableStateFlow(true)
@@ -265,7 +271,7 @@ object IslamicCalendarRepository {
 
     fun setUsePakistanOfficial(context: Context, useOfficial: Boolean) {
         _usePakistanOfficial.value = useOfficial
-        _calendarConvention.value = if (useOfficial) HijriCalendarConvention.PAKISTAN_RUET_E_HILAL else HijriCalendarConvention.ASTRONOMICAL
+        _calendarConvention.value = if (useOfficial) HijriCalendarConvention.PAKISTAN_RUET else HijriCalendarConvention.ASTRONOMICAL_TABULAR
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_CALENDAR_SOURCE, useOfficial).apply()
     }
