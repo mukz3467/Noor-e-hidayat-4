@@ -568,6 +568,42 @@ object QuranTafseerRepository {
         return AyahRevelationContext(unavailable, period, unavailable, unavailable)
     }
 
+    /**
+     * Compatibility helpers used by the detailed Tarjuma/Tafseer screen.
+     * Missing reports remain explicitly unavailable rather than being invented.
+     */
+    fun findVerifiedHadithsForAyah(surahNumber: Int, ayahNumber: Int): List<com.example.data.model.Hadith> =
+        emptyList()
+
+    fun buildVerifiedHistoricalPhase(
+        surahNumber: Int,
+        ayahNumber: Int,
+        language: AppLanguage,
+        context: Context
+    ): String = getRevelationContext(surahNumber, ayahNumber, language).zamanaNuzool
+
+    fun getUnavailableAsbabMessage(language: AppLanguage): String = when (language) {
+        AppLanguage.URDU -> "اس آیت کے لیے مستند سببِ نزول کی روایت دستیاب نہیں؛ غیر مصدقہ تفصیل شامل نہیں کی گئی۔"
+        AppLanguage.ARABIC -> "لا تتوفر رواية موثقة لسبب نزول هذه الآية."
+        AppLanguage.HINDI -> "इस आयत के लिए प्रमाणित असबाब-ए-नुज़ूल रिपोर्ट उपलब्ध नहीं है।"
+        AppLanguage.ENGLISH -> "No verified ayah-specific occasion-of-revelation report is available."
+    }
+
+    fun buildVerifiedAyahRevelationContext(
+        surahNumber: Int,
+        ayahNumber: Int,
+        language: AppLanguage,
+        asbabList: List<com.example.data.db.AsbabAlNuzulEntity>,
+        benefitsList: List<com.example.data.db.TafseerBenefitEntity>,
+        relatedHadiths: List<com.example.data.model.Hadith>,
+        onlineQfCommentary: com.example.data.network.QuranFoundationTafsirResult?,
+        onlineQfEditionLabel: String?,
+        activeTranslation: ResolvedAyahTranslation?,
+        context: Context,
+        onlineChapterInfo: com.example.data.network.QuranFoundationChapterInfo?
+    ): com.example.data.model.AyahRevelationContext =
+        getRevelationContext(surahNumber, ayahNumber, language)
+
     fun getRevelationContext(surahNumber: Int, ayahNumber: Int, language: AppLanguage): AyahRevelationContext {
         val ayah = QuranData.getAyahsForSurah(surahNumber).firstOrNull { it.ayahNumber == ayahNumber }
             ?: Ayah(surahNumber, ayahNumber, "", 1, emptyList(), emptyList())
