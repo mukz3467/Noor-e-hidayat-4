@@ -340,6 +340,7 @@ fun DuasScreen(
                             }
                         )
                     }
+                }
 
                 if (filteredDuas.isEmpty()) {
                     item {
