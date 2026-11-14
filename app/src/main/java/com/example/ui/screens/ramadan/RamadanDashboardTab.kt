@@ -23,6 +23,7 @@ import com.example.data.ramadan.RamadanCompanionState
 import com.example.data.ramadan.TimingSource
 import com.example.data.ramadan.formatDateKey
 import com.example.data.repository.PrayerCalculator
+import com.example.data.repository.formatted
 import com.example.localization.AppLocalization
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
