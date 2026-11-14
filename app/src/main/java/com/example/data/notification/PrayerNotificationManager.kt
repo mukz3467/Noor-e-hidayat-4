@@ -19,6 +19,7 @@ import com.example.MainActivity
 import com.example.R
 import com.example.data.location.AppLocationManager
 import com.example.data.repository.PrayerCalculator
+import com.example.data.repository.QuranAudioManager
 import java.util.Calendar
 import java.util.TimeZone
 import org.json.JSONArray
@@ -92,6 +93,14 @@ object PrayerNotificationManager {
     fun canUseExactAlarms(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+
+    fun stopAzanAudio(context: Context) {
+        QuranAudioManager.stopMedia()
+        runCatching {
+            context.stopService(Intent(context, AzanPlaybackService::class.java))
+            context.stopService(Intent(context, AdhanPlaybackService::class.java))
+        }
+    }
 
     fun isIgnoringBatteryOptimizations(context: Context): Boolean =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) true
