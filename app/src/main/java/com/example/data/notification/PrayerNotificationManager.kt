@@ -43,6 +43,8 @@ data class PrayerAlarmEntry(val id: String, val prayerName: String, val prayerTi
 object PrayerNotificationManager {
     const val CHANNEL_ID = "noor_prayer_channel"
     const val CHANNEL_SILENT_ID = "noor_prayer_silent_channel"
+    const val CHANNEL_ID_NOVIB = CHANNEL_SILENT_ID
+    const val NOTIF_ID_SERVICE = 202
     private const val PREFS_NAME = "prayer_notif_prefs"
     private const val KEY_SCHEDULED = "scheduled_prayer_alarms"
 
@@ -90,6 +92,21 @@ object PrayerNotificationManager {
     fun canUseExactAlarms(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+
+    fun isIgnoringBatteryOptimizations(context: Context): Boolean =
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) true
+        else (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+            .isIgnoringBatteryOptimizations(context.packageName)
+
+    fun openExactAlarmSettings(context: Context) = requestExactAlarmPermission(context)
+
+    fun openBatteryOptimizationSettings(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { context.startActivity(intent) }
+        }
+    }
 
     fun requestExactAlarmPermission(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canUseExactAlarms(context)) {
