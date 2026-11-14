@@ -31,6 +31,7 @@ import com.example.R
 import com.example.data.location.AppLocationManager
 import com.example.data.model.AppLanguage
 import com.example.data.repository.IslamicCalendarRepository
+import com.example.data.repository.formatted
 import com.example.data.repository.PrayerCalculator
 import com.example.localization.AppLocalization
 import java.util.Calendar
