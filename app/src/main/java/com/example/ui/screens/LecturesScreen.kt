@@ -324,7 +324,6 @@ fun LecturesScreen(
                                 key(currentPlaying.id) {
                                     InAppYouTubePlayer(
                                         videoId = currentPlaying.id,
-                                        language = language,
                                         modifier = Modifier.fillMaxSize(),
                                         autoplay = true
                                     )

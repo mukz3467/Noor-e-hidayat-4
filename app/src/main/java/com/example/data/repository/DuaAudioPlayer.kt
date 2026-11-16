@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.widget.Toast
+import com.example.data.model.Dua
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,17 @@ object DuaAudioPlayer {
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    private val _isBuffering = MutableStateFlow(false)
+    val isBuffering: StateFlow<Boolean> = _isBuffering.asStateFlow()
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    private val _isDownloadingPack = MutableStateFlow(false)
+    val isDownloadingPack: StateFlow<Boolean> = _isDownloadingPack.asStateFlow()
+    private val _offlinePackProgress = MutableStateFlow(0f)
+    val offlinePackProgress: StateFlow<Float> = _offlinePackProgress.asStateFlow()
+    private val _cachedTrackCount = MutableStateFlow(0)
+    val cachedTrackCount: StateFlow<Int> = _cachedTrackCount.asStateFlow()
 
     private val _repeatCount = MutableStateFlow(1)
     val repeatCount: StateFlow<Int> = _repeatCount.asStateFlow()
@@ -124,6 +136,16 @@ object DuaAudioPlayer {
 
         speakCurrentSegment()
     }
+
+    fun playDua(context: Context, dua: Dua, repeatTarget: Int = 1) =
+        playDua(context, dua.id, dua.arabic, dua.transliteration, repeatTarget)
+
+    fun clearError() { _errorMessage.value = null }
+
+    fun isDuaOfflineReady(context: Context, dua: Dua): Boolean = false
+
+    suspend fun downloadAllGenuineDuaAudios(context: Context, duas: List<Dua>): Result<Int> =
+        Result.failure(UnsupportedOperationException("Genuine reciter recordings are not bundled or downloaded by this build. Arabic text-to-speech is available only when supported by the device."))
 
     private fun speakCurrentSegment() {
         val utteranceId = "dua_${_currentDuaId.value}_loop_${_currentLoop.value}"

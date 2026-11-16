@@ -18,6 +18,8 @@ data class HijriDate(
     val monthNameUr: String,
     val monthNameAr: String,
     val year: Int,
+    val monthNameHi: String = "",
+    val isEstimate: Boolean = true,
     val isConfirmedByRuetHilal: Boolean = false,
     val sourceDescription: String = "Astronomical Calculation (Umm Al-Qura Formula)"
 )
@@ -46,6 +48,22 @@ data class RamadanDaySchedule(
     val dayOfWeek: String
 )
 
+enum class HijriCalendarConvention(val id: String) {
+    PAKISTAN_RUET("pakistan_ruet"),
+    UMM_AL_QURA("umm_al_qura"),
+    ASTRONOMICAL_TABULAR("astronomical_tabular"),
+    MANUAL_LOCAL_SIGHTING("manual_local_sighting"),
+    PAKISTAN_RUET_E_HILAL("pakistan_ruet_e_hilal"),
+    ASTRONOMICAL("astronomical")
+}
+
+fun HijriDate.formatted(language: com.example.data.model.AppLanguage): String = when (language) {
+    com.example.data.model.AppLanguage.URDU -> "$day $monthNameUr ${year}ھ"
+    com.example.data.model.AppLanguage.ARABIC -> "$day $monthNameAr $year هـ"
+    com.example.data.model.AppLanguage.HINDI -> "$day ${monthNameHi.ifBlank { monthNameEn }} $year हिजरी"
+    com.example.data.model.AppLanguage.ENGLISH -> "$day $monthNameEn $year AH"
+}
+
 object IslamicCalendarRepository {
 
     private const val PREFS_NAME = "hijri_calendar_prefs"
@@ -68,6 +86,12 @@ object IslamicCalendarRepository {
         "محرّم", "صفر", "ربيع الأول", "ربيع الثاني",
         "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان",
         "رمضان", "شوّال", "ذو القعدة", "ذو الحجة"
+    )
+
+    val HIJRI_MONTHS_HI = listOf(
+        "मुहर्रम", "सफ़र", "रबीउल अव्वल", "रबीउस्सानी",
+        "जुमादल ऊला", "जुमादल आख़िरा", "रजब", "शाबान",
+        "रमज़ान", "शव्वाल", "ज़ुलक़ादा", "ज़ुलहिज्जा"
     )
 
     val ISLAMIC_EVENTS: List<IslamicCalendarEvent> = listOf(
@@ -216,6 +240,9 @@ object IslamicCalendarRepository {
     private val _manualAdjustmentDays = MutableStateFlow(0)
     val manualAdjustmentDays: StateFlow<Int> = _manualAdjustmentDays.asStateFlow()
 
+    private val _calendarConvention = MutableStateFlow(HijriCalendarConvention.PAKISTAN_RUET)
+    val calendarConvention: StateFlow<HijriCalendarConvention> = _calendarConvention.asStateFlow()
+
     private val _usePakistanOfficial = MutableStateFlow(true)
     val usePakistanOfficial: StateFlow<Boolean> = _usePakistanOfficial.asStateFlow()
 
@@ -227,6 +254,7 @@ object IslamicCalendarRepository {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         _manualAdjustmentDays.value = prefs.getInt(KEY_MANUAL_ADJUSTMENT, 0)
         _usePakistanOfficial.value = prefs.getBoolean(KEY_CALENDAR_SOURCE, true)
+        _calendarConvention.value = if (_usePakistanOfficial.value) HijriCalendarConvention.PAKISTAN_RUET else HijriCalendarConvention.ASTRONOMICAL_TABULAR
     }
 
     fun setManualAdjustment(context: Context, days: Int) {
@@ -236,8 +264,14 @@ object IslamicCalendarRepository {
         prefs.edit().putInt(KEY_MANUAL_ADJUSTMENT, clamped).apply()
     }
 
+    fun setCalendarConvention(context: Context, convention: HijriCalendarConvention) {
+        _calendarConvention.value = convention
+        setUsePakistanOfficial(context, convention == HijriCalendarConvention.PAKISTAN_RUET || convention == HijriCalendarConvention.PAKISTAN_RUET_E_HILAL)
+    }
+
     fun setUsePakistanOfficial(context: Context, useOfficial: Boolean) {
         _usePakistanOfficial.value = useOfficial
+        _calendarConvention.value = if (useOfficial) HijriCalendarConvention.PAKISTAN_RUET else HijriCalendarConvention.ASTRONOMICAL_TABULAR
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_CALENDAR_SOURCE, useOfficial).apply()
     }
@@ -290,9 +324,29 @@ object IslamicCalendarRepository {
             monthNameUr = HIJRI_MONTHS_UR[validMonth],
             monthNameAr = HIJRI_MONTHS_AR[validMonth],
             year = hijriYear,
+            monthNameHi = listOf("मुहर्रम", "सफ़र", "रबीउल अव्वल", "रबीउस्सानी", "जुमादल ऊला", "जुमादल आख़िरा", "रजब", "शाबान", "रमज़ान", "शव्वाल", "ज़ुलक़ादा", "ज़ुलहिज्जा")[validMonth],
+            isEstimate = true,
             isConfirmedByRuetHilal = false,
             sourceDescription = source
         )
+    }
+
+    fun getHijriDate(calendar: Calendar, manualOffsetDays: Int, convention: HijriCalendarConvention): HijriDate =
+        getHijriDate(calendar, manualOffsetDays)
+
+    fun getHijriDate(calendar: Calendar, convention: HijriCalendarConvention, manualOffsetDays: Int): HijriDate =
+        getHijriDate(calendar, manualOffsetDays)
+
+    fun findProjectedRamadanStart(from: Calendar): Calendar {
+        val candidate = (from.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, 12); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        repeat(370) {
+            val date = getHijriDate(candidate)
+            if (date.month == 9 && date.day == 1) return candidate
+            candidate.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return candidate
     }
 
     fun getFormattedHijriDate(calendar: Calendar, manualOffsetDays: Int = _manualAdjustmentDays.value): String {

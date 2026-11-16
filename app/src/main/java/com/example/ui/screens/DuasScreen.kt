@@ -340,64 +340,6 @@ fun DuasScreen(
                             }
                         )
                     }
-
-                    // Offline Qari Audio Pack Banner for Quranic Adhkar
-                    item(key = "dua_qari_offline_pack_banner") {
-                        Card(
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = AppLocalization.get("dua_genuine_audio_badge", language),
-                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            text = "Shaykh Mishary Alafasy • Three Quls bundled offline; $cachedTrackCount EveryAyah Ayah tracks cached",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    if (isDownloadingPack) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                                    } else {
-                                        OutlinedButton(
-                                            onClick = {
-                                                scope.launch {
-                                                    DuaAudioPlayer.downloadAllGenuineDuaAudios(context, DuaData.duas)
-                                                        .onSuccess { count ->
-                                                            Toast.makeText(context, "Cached $count Quranic Dua audio tracks", Toast.LENGTH_SHORT).show()
-                                                        }
-                                                        .onFailure { err ->
-                                                            Toast.makeText(context, "Audio cache failed: ${err.message}", Toast.LENGTH_SHORT).show()
-                                                        }
-                                                }
-                                            }
-                                        ) {
-                                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(AppLocalization.get("dua_download_audio_pack", language), maxLines = 1)
-                                        }
-                                    }
-                                }
-                                if (isDownloadingPack) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    LinearProgressIndicator(
-                                        progress = { offlinePackProgress },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
 
                 if (filteredDuas.isEmpty()) {

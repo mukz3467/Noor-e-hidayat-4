@@ -17,6 +17,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.R
+import com.example.data.location.AppLocationManager
+import com.example.data.repository.PrayerCalculator
+import com.example.data.repository.QuranAudioManager
+import java.util.Calendar
+import java.util.TimeZone
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +44,8 @@ data class PrayerAlarmEntry(val id: String, val prayerName: String, val prayerTi
 object PrayerNotificationManager {
     const val CHANNEL_ID = "noor_prayer_channel"
     const val CHANNEL_SILENT_ID = "noor_prayer_silent_channel"
+    const val CHANNEL_ID_NOVIB = CHANNEL_SILENT_ID
+    const val NOTIF_ID_SERVICE = 202
     private const val PREFS_NAME = "prayer_notif_prefs"
     private const val KEY_SCHEDULED = "scheduled_prayer_alarms"
 
@@ -86,6 +93,29 @@ object PrayerNotificationManager {
     fun canUseExactAlarms(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+
+    fun stopAzanAudio(context: Context) {
+        QuranAudioManager.stopMedia()
+        runCatching {
+            context.stopService(Intent(context, AzanPlaybackService::class.java))
+            context.stopService(Intent(context, AdhanPlaybackService::class.java))
+        }
+    }
+
+    fun isIgnoringBatteryOptimizations(context: Context): Boolean =
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) true
+        else (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+            .isIgnoringBatteryOptimizations(context.packageName)
+
+    fun openExactAlarmSettings(context: Context) = requestExactAlarmPermission(context)
+
+    fun openBatteryOptimizationSettings(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { context.startActivity(intent) }
+        }
+    }
 
     fun requestExactAlarmPermission(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canUseExactAlarms(context)) {
@@ -143,6 +173,69 @@ object PrayerNotificationManager {
         }
         saveEntries(prefs, future)
         scheduleEntries(context, future)
+    }
+
+    /** Compatibility entry point used by app startup and settings. */
+    fun canScheduleExactAlarms(context: Context): Boolean = canUseExactAlarms(context)
+
+    fun cancelAllAlarms(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        readEntries(prefs).forEach { cancelAlarm(context, it.id) }
+        saveEntries(prefs, emptyList())
+    }
+
+    fun rescheduleAllAlarms(context: Context, reason: String = "settings_changed") {
+        scheduleNextRollingWindow(context, reason)
+    }
+
+    /**
+     * Keep a rolling 8-day set of local prayer alarms. Times are calculated from the
+     * currently selected location and prayer calculation preferences, not hard-coded.
+     */
+    fun scheduleNextRollingWindow(context: Context, reason: String = "refresh") {
+        init(context)
+        AppLocationManager.init(context)
+        PrayerCalculator.init(context)
+        val location = AppLocationManager.currentLocation.value
+        val config = PrayerCalculator.calcConfig.value
+        val entries = mutableListOf<PrayerAlarmEntry>()
+        val base = Calendar.getInstance(TimeZone.getTimeZone(location.timeZoneId))
+        for (dayOffset in 0..7) {
+            val day = (base.clone() as Calendar).apply {
+                add(Calendar.DAY_OF_MONTH, dayOffset)
+            }
+            val schedule = PrayerCalculator.calculatePrayerTimes(
+                latitude = location.latitude,
+                longitude = location.longitude,
+                calendar = day,
+                method = config.method,
+                asrJuristic = config.asrJuristic,
+                adjustments = config.adjustments,
+                highLatitudeRule = config.highLatitudeRule,
+                cityName = location.cityName,
+                timeZoneId = location.timeZoneId,
+                customParams = config.customParams
+            )
+            val prayers = listOf(
+                "fajr" to schedule.fajr,
+                "dhuhr" to schedule.dhuhr,
+                "asr" to schedule.asr,
+                "maghrib" to schedule.maghrib,
+                "isha" to schedule.isha
+            )
+            prayers.forEach { (key, formatted) ->
+                val trigger = PrayerCalculator.computePrayerTriggerTimeMillis(formatted, day, key)
+                if (trigger != null && trigger > System.currentTimeMillis()) {
+                    val dateKey = "%04d%02d%02d".format(
+                        day.get(Calendar.YEAR),
+                        day.get(Calendar.MONTH) + 1,
+                        day.get(Calendar.DAY_OF_MONTH)
+                    )
+                    entries += PrayerAlarmEntry("${dateKey}_${key}", key, trigger)
+                }
+            }
+        }
+        scheduleAlarms(context, entries)
     }
 
     fun restoreScheduledAlarms(context: Context) {
